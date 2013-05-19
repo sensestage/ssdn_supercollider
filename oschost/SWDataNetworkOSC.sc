@@ -3,7 +3,7 @@
 
 SWDataNetworkOSC{
 
-	classvar <>httppath;
+    classvar <>httppath;
 
 	var <verbose;
 
@@ -58,7 +58,7 @@ SWDataNetworkOSC{
 
 		this.createResponders;
 
-		watcher = SkipJack.new( { 
+		watcher = SkipJack.new( {
 			this.sendPings;
 		}, 1, name: "SWDataNetworkOSC" , autostart: true );
 
@@ -85,13 +85,13 @@ SWDataNetworkOSC{
 	}
 
 	sendPings{
-		clientDictionary.do{ |it| 
+		clientDictionary.do{ |it|
 			it.ping;
 			if ( it.active ){
 				if ( it.missedPongs > maxMissedPongs )
-				{ 
+				{
 					this.removeClient( it.addr, it.key );
-				} 
+				}
 			};
 		};
 	}
@@ -103,400 +103,428 @@ SWDataNetworkOSC{
 	createResponders{
 		responders = [
 			/// REGISTRATION
-			OSCresponderNode( nil, '/register', { |t,r,msg,addr|
-				verbose.value( 1, msg );
+            OSCFunc.new( { |msg, t, addr, recvPort|
+                verbose.value( 1, msg );
 				if ( msg.size > 1 ){
 					addr.port = msg[1]; this.addClient( addr, msg[2] );
 				}{
 					verbose.value( 0, "missing port in message" );
 				};
-			}),
-			OSCresponderNode( nil, '/unregister', { |t,r,msg,addr|
+            }, '/register' ),
+            OSCFunc.new( { |msg, t, addr, recvPort|
 				verbose.value( 1, msg );
 				if ( msg.size > 1 ){
 					addr.port = msg[1]; this.removeClient( addr, msg[2] );
-				}{ 
+				}{
 					verbose.value( 0, "missing port in message" );
 				};
-			}),
-
-			OSCresponderNode( nil, '/pong', { |t,r,msg,addr|
+			}, '/unregister'),
+            OSCFunc.new( { |msg, t, addr, recvPort|
 				var client;
 				verbose.value( 3, msg );
 				if ( msg.size > 1 ){
 					addr.port = msg[1];
 					client = this.findClient( addr, msg[2] );
 					if ( client.notNil, { client.pong } ) ;
-				}{ 
+				}{
 					verbose.value( 0, "missing port in message");
 				};
-			}),
+			}, '/pong' ),
 
 			/// QUERIES
-
-			OSCresponderNode( nil, '/query/all', { |t,r,msg,addr|
-				verbose.value( 1, msg );
+            OSCFunc.new( { |msg, t, addr, recvPort|
+                verbose.value( 1, msg );
 				if ( msg.size > 1 ){
 					addr.port = msg[1]; this.allQuery( addr, msg[2] );
-				}{ 
-					verbose.value( 0, "missing port in message" ); 
+				}{
+					verbose.value( 0, "missing port in message" );
 				};
-			}),
-			OSCresponderNode( nil, '/query/expected', { |t,r,msg,addr|
-				verbose.value( 1, { msg.postln; } );
+			},'/query/all'),
+            OSCFunc.new( { |msg, t, addr, recvPort|
+                verbose.value( 1, { msg.postln; } );
 				if ( msg.size > 1 ){
 					addr.port = msg[1]; this.expectedQuery( addr, msg[2] );
 				}{ verbose.value( 0, "missing port in message" ); };
-			}),
-			OSCresponderNode( nil, '/query/nodes', { |t,r,msg,addr|
-				verbose.value( 1, { msg.postln; } );
+			}, '/query/expected'),
+            OSCFunc.new( { |msg, t, addr, recvPort|
+                verbose.value( 1, { msg.postln; } );
 				if ( msg.size > 1 ){
 					addr.port = msg[1]; this.nodeQuery( addr, msg[2] );
 				}{ verbose.value( 0, "missing port in message" ); };
-			}),
-			OSCresponderNode( nil, '/query/slots', { |t,r,msg,addr|
-				verbose.value( 1, { msg.postln; } );
+			}, '/query/nodes'),
+            OSCFunc.new( { |msg, t, addr, recvPort|
+                verbose.value( 1, { msg.postln; } );
 				if ( msg.size > 1 ){
 					addr.port = msg[1]; this.slotQuery( addr, msg[2] );
 				}{ verbose.value( 0, "missing port in message" ); };
-			}),
-			OSCresponderNode( nil, '/query/clients', { |t,r,msg,addr|
-				verbose.value( 1, msg );
+			},'/query/slots'),
+            OSCFunc.new( { |msg, t, addr, recvPort|
+                verbose.value( 1, msg );
 				if ( msg.size > 1 ){
 					addr.port = msg[1]; this.clientQuery( addr, msg[2] );
 				}{ verbose.value( 0, "missing port in message" ); };
-			}),
-			OSCresponderNode( nil, '/query/subscriptions', { |t,r,msg,addr|
-				verbose.value( 1, msg );
+			}, '/query/clients'),
+            OSCFunc.new( { |msg, t, addr, recvPort|
+                verbose.value( 1, msg );
 				if ( msg.size > 1 ){
 					addr.port = msg[1]; this.subscriptionQuery( addr, msg[2] );
 				}{ verbose.value( 0, "missing port in message" ); };
-			}),
-			OSCresponderNode( nil, '/query/setters', { |t,r,msg,addr|
-				verbose.value( 1, msg );
+			}, '/query/subscriptions' ),
+            OSCFunc.new( { |msg, t, addr, recvPort|
+                verbose.value( 1, msg );
 				if ( msg.size > 1 ){
 					addr.port = msg[1]; this.setterQuery( addr, msg[2] );
 				}{ verbose.value( 0, "missing port in message" ); };
-			}),
+			}, '/query/setters'),
 
 			/// SUBSCRIPTIONS
 
-			OSCresponderNode( nil, '/subscribe/all', { |t,r,msg,addr|
-				verbose.value( 1, msg );
+            OSCFunc.new( { |msg, t, addr, recvPort|
+                verbose.value( 1, msg );
 				if ( msg.size > 1 ){
 					addr.port = msg[1]; this.allNodeSubscribe( addr, msg[2] );
 				}{ verbose.value( 0, "missing port in message" ); };
-			}),
-			OSCresponderNode( nil, '/unsubscribe/all', { |t,r,msg,addr|
-				verbose.value( 1, msg );
+			}, '/subscribe/all'),
+            OSCFunc.new( { |msg, t, addr, recvPort|
+                verbose.value( 1, msg );
 				if ( msg.size > 1 ){
 					addr.port = msg[1]; this.allNodeUnsubscribe( addr, msg[2] );
 				}{ verbose.value( 0, "missing port in message" ); };
-			}),
-			OSCresponderNode( nil, '/subscribe/node', { |t,r,msg,addr|
-				verbose.value( 1, msg );
+			}, '/unsubscribe/all'),
+            OSCFunc.new( { |msg, t, addr, recvPort|
+                verbose.value( 1, msg );
 				if ( msg.size > 1 ){
 					addr.port = msg[1]; this.nodeSubscribe( addr, msg[2],  msg.copyToEnd( 3 ) );
 				}{ verbose.value( 0, "missing port in message" ); };
-			}),
-			OSCresponderNode( nil, '/unsubscribe/node', { |t,r,msg,addr|
-				verbose.value( 1, msg );
+			}, '/subscribe/node'),
+            OSCFunc.new( { |msg, t, addr, recvPort|
+                verbose.value( 1, msg );
 				if ( msg.size > 1 ){
 					addr.port = msg[1]; this.nodeUnsubscribe( addr, msg[2], msg.copyToEnd( 3 ) );
 				}{ verbose.value( 0, "missing port in message" ); };
-			}),
-			OSCresponderNode( nil, '/subscribe/slot', { |t,r,msg,addr|
-				verbose.value( 1, msg );
+			}, '/unsubscribe/node' ),
+            OSCFunc.new( { |msg, t, addr, recvPort|
+                verbose.value( 1, msg );
 				if ( msg.size > 1 ){
 					addr.port = msg[1]; this.slotSubscribe( addr, msg[2], msg.copyToEnd( 3 ) );
 				}{ verbose.value( 0, "missing port in message" ); };
-			}),
-			OSCresponderNode( nil, '/unsubscribe/slot', { |t,r,msg,addr|
-				verbose.value( 1, msg );
+			}, '/subscribe/slot'),
+            OSCFunc.new( { |msg, t, addr, recvPort|
+                verbose.value( 1, msg );
 				if ( msg.size > 1 ){
 					addr.port = msg[1]; this.slotUnsubscribe( addr, msg[2], msg.copyToEnd( 3 ) );
 				}{ verbose.value( 0, "missing port in message" ); };
-			}),
+			}, '/unsubscribe/slot'),
 
 			// SETTING, LABELING
 
-			OSCresponderNode( nil, '/add/expected', { |t,r,msg,addr|
-				verbose.value( 1, msg );
+            OSCFunc.new( { |msg, t, addr, recvPort|
+                verbose.value( 1, msg );
 				if ( msg.size > 1 ){
 					addr.port = msg[1]; this.addExpected( addr, msg[2], msg.copyToEnd( 3 ) );
-				}{ verbose.value( 0, "missing port in message" ); };			}),
-			OSCresponderNode( nil, '/set/data', { |t,r,msg,addr|
-				verbose.value( 2, msg );
+				}{ verbose.value( 0, "missing port in message" ); };
+            },'/add/expected'),
+            OSCFunc.new( { |msg, t, addr, recvPort|
+                verbose.value( 2, msg );
 				if ( msg.size > 1 ){
 					addr.port = msg[1]; this.setData( addr, msg[2], msg.copyToEnd( 3 ) );
-				}{ verbose.value( 0, "missing port in message" ); };			}),
-			OSCresponderNode( nil, '/label/slot', { |t,r,msg,addr|
-				verbose.value( 1, msg );
+				}{ verbose.value( 0, "missing port in message" ); };
+            },'/set/data' ),
+
+            OSCFunc.new( { |msg, t, addr, recvPort|
+                verbose.value( 1, msg );
 				if ( msg.size > 1 ){
 					addr.port = msg[1]; this.labelSlot( addr, msg[2], msg.copyToEnd( 3 ) );
 				}{ verbose.value( 0, "missing port in message" ); };
-			}),
-			OSCresponderNode( nil, '/label/node', { |t,r,msg,addr|
-				verbose.value( 1, msg );
+			}, '/label/slot'),
+            OSCFunc.new( { |msg, t, addr, recvPort|
+                verbose.value( 1, msg );
 				if ( msg.size > 1 ){
 					addr.port = msg[1]; this.labelNode( addr, msg[2], msg.copyToEnd( 3 ) );
-				}{ verbose.value( 0, "missing port in message" ); };			}),
+				}{ verbose.value( 0, "missing port in message" ); };
+            }, '/label/node'),
 
 			/// GETTING
-			OSCresponderNode( nil, '/get/node', { |t,r,msg,addr|
-				verbose.value( 1, msg );
+            OSCFunc.new( { |msg, t, addr, recvPort|
+                verbose.value( 1, msg );
 				if ( msg.size > 1 ){
 					addr.port = msg[1]; this.getNode( addr, msg[2], msg.copyToEnd( 3 ) );
-				}{ verbose.value( 0, "missing port in message" ); };			}),
-			OSCresponderNode( nil, '/get/slot', { |t,r,msg,addr|
-				verbose.value( 1, msg );
+				}{ verbose.value( 0, "missing port in message" ); };
+            }, '/get/node' ),
+
+            OSCFunc.new( { |msg, t, addr, recvPort|
+                verbose.value( 1, msg );
 				if ( msg.size > 1 ){
 					addr.port = msg[1]; this.getSlot( addr, msg[2], msg.copyToEnd( 3 ) );
-				}{ verbose.value( 0, "missing port in message" ); };			}),
+				}{ verbose.value( 0, "missing port in message" ); };
+            }, '/get/slot' ),
 
 			/// REMOVING
 
-			OSCresponderNode( nil, '/remove/node', { |t,r,msg,addr|
-				verbose.value( 1, msg );
+            OSCFunc.new( { |msg, t, addr, recvPort|
+                verbose.value( 1, msg );
 				if ( msg.size > 1 ){
 					addr.port = msg[1]; this.removeNode( addr, msg[2], msg.copyToEnd( 3 ) );
-				}{ verbose.value( 0, "missing port in message" ); };			}),
-			OSCresponderNode( nil, '/remove/all', { |t,r,msg,addr|
-				verbose.value( 1, { msg.postln;} );
+				}{ verbose.value( 0, "missing port in message" ); };
+            }, '/remove/node' );
+
+            OSCFunc.new( { |msg, t, addr, recvPort|
+                verbose.value( 1, { msg.postln;} );
 				if ( msg.size > 1 ){
 					addr.port = msg[1]; this.removeAll( addr, msg[2] );
-				}{ verbose.value( 0, "missing port in message" ); };			}),
+				}{ verbose.value( 0, "missing port in message" ); };
+            }, '/remove/all' ),
 
 			/// MAPPING TO MINIBEE OUTPUT
 
-			OSCresponderNode( nil, '/info/minibee', { |t,r,msg,addr|
-				verbose.value( 1, msg );
+            OSCFunc.new( { |msg, t, addr, recvPort|
+                verbose.value( 1, msg );
 				if ( msg.size > 1 ){
 					addr.port = msg[1]; this.minibeeInfo( addr, msg[2], msg.copyToEnd(3) );
 				}{ verbose.value( 0, "missing port in message" ); };
-			}),
+			}, '/info/minibee' ),
 
-			OSCresponderNode( nil, '/status/minibee', { |t,r,msg,addr|
-				verbose.value( 1, msg );
+            OSCFunc.new( { |msg, t, addr, recvPort|
+                verbose.value( 1, msg );
 				if ( msg.size > 1 ){
 					addr.port = msg[1]; this.minibeeStatus( addr, msg[2], msg.copyToEnd(3) );
 				}{ verbose.value( 0, "missing port in message" ); };
-			}),
+			}, '/status/minibee' ),
 
-			OSCresponderNode( nil, '/query/minibees', { |t,r,msg,addr|
-				verbose.value( 1, msg );
+            OSCFunc.new( { |msg, t, addr, recvPort|
+                verbose.value( 1, msg );
 				if ( msg.size > 1 ){
 					addr.port = msg[1]; this.minibeeQuery( addr, msg[2] );
 				}{ verbose.value( 0, "missing port in message"); };
-			}),
+			}, '/query/minibees' ),
 
 			// mapping datanodes to minibees
-			OSCresponderNode( nil, '/map/minibee/output', { |t,r,msg,addr|
-				verbose.value( 1, msg );
+            OSCFunc.new( { |msg, t, addr, recvPort|
+                verbose.value( 1, msg );
 				if ( msg.size > 1 ){
 					addr.port = msg[1]; this.mapHiveOutput( addr, msg[2], msg.copyToEnd( 3 ) );
-				}{ verbose.value( 0, "missing port in message" ); };			}),
-			OSCresponderNode( nil, '/map/minibee/custom', { |t,r,msg,addr|
-				verbose.value( 1, msg );
-				if ( msg.size > 1 ){
-					addr.port = msg[1]; this.mapHiveCustom( addr, msg[2], msg.copyToEnd( 3 ) );
-				}{ verbose.value( 0, "missing port in message" ); };			}),
-			OSCresponderNode( nil, '/unmap/minibee/output', { |t,r,msg,addr|
-				verbose.value( 1, msg );
+				}{ verbose.value( 0, "missing port in message" ); };
+            }, '/map/minibee/output' ),
+            OSCFunc.new( { |msg, t, addr, recvPort|
+                verbose.value( 1, msg );
+                if ( msg.size > 1 ){
+                    addr.port = msg[1]; this.mapHiveCustom( addr, msg[2], msg.copyToEnd( 3 ) );
+                }{ verbose.value( 0, "missing port in message" ); };
+            }, '/map/minibee/custom' ),
+            OSCFunc.new( { |msg, t, addr, recvPort|
+                verbose.value( 1, msg );
 				if ( msg.size > 1 ){
 					addr.port = msg[1]; this.unmapHiveOutput( addr, msg[2], msg.copyToEnd( 3 ) );
-				}{ verbose.value( 0, "missing port in message" ); };			}),
-			OSCresponderNode( nil, '/unmap/minibee/custom', { |t,r,msg,addr|
-				verbose.value( 1, msg );
+				}{ verbose.value( 0, "missing port in message" ); };
+            }, '/unmap/minibee/output' ),
+            OSCFunc.new( { |msg, t, addr, recvPort|
+                verbose.value( 1, msg );
 				if ( msg.size > 1 ){
 					addr.port = msg[1]; this.unmapHiveCustom( addr, msg[2], msg.copyToEnd( 3 ) );
-				}{ verbose.value( 0, "missing port in message" ); };			}),
+				}{ verbose.value( 0, "missing port in message" ); };
+            }, '/unmap/minibee/custom'),
 
-			OSCresponderNode( nil, '/mapped/minibee/output', { |t,r,msg,addr|
-				verbose.value( 1, msg );
+            OSCFunc.new( { |msg, t, addr, recvPort|
+                verbose.value( 1, msg );
 				if ( msg.size > 1 ){
 					addr.port = msg[1]; this.mappedHiveOutput( addr, msg[2], msg.copyToEnd( 3 ) );
-				}{ verbose.value( 0, "missing port in message" ); };			}),
-			OSCresponderNode( nil, '/mapped/minibee/custom', { |t,r,msg,addr|
-				verbose.value( 1, msg );
+				}{ verbose.value( 0, "missing port in message" ); };
+            }, '/mapped/minibee/output' ),
+            OSCFunc.new( { |msg, t, addr, recvPort|
+                verbose.value( 1, msg );
 				if ( msg.size > 1 ){
 					addr.port = msg[1]; this.mappedHiveCustom( addr, msg[2], msg.copyToEnd( 3 ) );
-				}{ verbose.value( 0, "missing port in message" ); };			}),
-			OSCresponderNode( nil, '/unmapped/minibee/output', { |t,r,msg,addr|
-				verbose.value( 1, msg );
+				}{ verbose.value( 0, "missing port in message" ); };
+            }, '/mapped/minibee/custom' ),
+            OSCFunc.new( { |msg, t, addr, recvPort|
+                verbose.value( 1, msg );
 				if ( msg.size > 1 ){
 					addr.port = msg[1]; this.unmappedHiveOutput( addr, msg[2], msg.copyToEnd( 3 ) );
-				}{ verbose.value( 0, "missing port in message" ); };			}),
-			OSCresponderNode( nil, '/unmapped/minibee/custom', { |t,r,msg,addr|
-				verbose.value( 1, msg );
+				}{ verbose.value( 0, "missing port in message" ); };
+            }, '/unmapped/minibee/output' ),
+            OSCFunc.new( { |msg, t, addr, recvPort|
+                verbose.value( 1, msg );
 				if ( msg.size > 1 ){
 					addr.port = msg[1]; this.unmappedHiveCustom( addr, msg[2], msg.copyToEnd( 3 ) );
-				}{ verbose.value( 0, "missing port in message" ); };			}),
+				}{ verbose.value( 0, "missing port in message" ); };
+            }, '/unmapped/minibee/custom' ),
 
 			// end mapping datanodes to minibees
 
-			// mapping datanodes to broadcat of bees
-			OSCresponderNode( nil, '/map/minihive/output', { |t,r,msg,addr|
-				verbose.value( 1, msg );
+			// mapping datanodes to broadcast of bees
+            OSCFunc.new( { |msg, t, addr, recvPort|
+                verbose.value( 1, msg );
 				if ( msg.size > 1 ){
 					addr.port = msg[1]; this.mapHiveAllOutput( addr, msg[2], msg.copyToEnd( 3 ) );
-				}{ verbose.value( 0, "missing port in message" ); };			}),
-			OSCresponderNode( nil, '/map/minihive/custom', { |t,r,msg,addr|
-				verbose.value( 1, msg );
+				}{ verbose.value( 0, "missing port in message" ); };
+            }, '/map/minihive/output' ),
+            OSCFunc.new( { |msg, t, addr, recvPort|
+                verbose.value( 1, msg );
 				if ( msg.size > 1 ){
 					addr.port = msg[1]; this.mapHiveAllCustom( addr, msg[2], msg.copyToEnd( 3 ) );
-				}{ verbose.value( 0, "missing port in message" ); };			}),
-			OSCresponderNode( nil, '/unmap/minihive/output', { |t,r,msg,addr|
-				verbose.value( 1, msg );
+				}{ verbose.value( 0, "missing port in message" ); };
+            }, '/map/minihive/custom' ),
+            OSCFunc.new( { |msg, t, addr, recvPort|
+                verbose.value( 1, msg );
 				if ( msg.size > 1 ){
 					addr.port = msg[1]; this.unmapHiveAllOutput( addr, msg[2], msg.copyToEnd( 3 ) );
-				}{ verbose.value( 0, "missing port in message" ); };			}),
-			OSCresponderNode( nil, '/unmap/minihive/custom', { |t,r,msg,addr|
-				verbose.value( 1, msg );
+				}{ verbose.value( 0, "missing port in message" ); };
+            }, '/unmap/minihive/output' ),
+            OSCFunc.new( { |msg, t, addr, recvPort|
+                verbose.value( 1, msg );
 				if ( msg.size > 1 ){
 					addr.port = msg[1]; this.unmapHiveAllCustom( addr, msg[2], msg.copyToEnd( 3 ) );
-				}{ verbose.value( 0, "missing port in message" ); };			}),
+				}{ verbose.value( 0, "missing port in message" ); };
+            }, '/unmap/minihive/custom' ),
 
-			OSCresponderNode( nil, '/mapped/minihive/output', { |t,r,msg,addr|
+            OSCFunc.new( { |msg, t, addr, recvPort|
 				verbose.value( 1, msg );
 				if ( msg.size > 1 ){
 					addr.port = msg[1]; this.mappedHiveAllOutput( addr, msg[2], msg.copyToEnd( 3 ) );
-				}{ verbose.value( 0, "missing port in message" ); };			}),
-			OSCresponderNode( nil, '/mapped/minihive/custom', { |t,r,msg,addr|
+				}{ verbose.value( 0, "missing port in message" ); };
+            }, '/mapped/minihive/output' ),
+
+            OSCFunc.new( { |msg, t, addr, recvPort|
 				verbose.value( 1, msg );
 				if ( msg.size > 1 ){
 					addr.port = msg[1]; this.mappedHiveAllCustom( addr, msg[2], msg.copyToEnd( 3 ) );
-				}{ verbose.value( 0, "missing port in message" ); };			}),
-			OSCresponderNode( nil, '/unmapped/minihive/output', { |t,r,msg,addr|
+				}{ verbose.value( 0, "missing port in message" ); };
+            }, '/mapped/minihive/custom' ),
+
+            OSCFunc.new( { |msg, t, addr, recvPort|
 				verbose.value( 1, msg );
 				if ( msg.size > 1 ){
 					addr.port = msg[1]; this.unmappedHiveAllOutput( addr, msg[2], msg.copyToEnd( 3 ) );
-				}{ verbose.value( 0, "missing port in message" ); };			}),
-			OSCresponderNode( nil, '/unmapped/minihive/custom', { |t,r,msg,addr|
-				verbose.value( 1, msg );
-				if ( msg.size > 1 ){
-					addr.port = msg[1]; this.unmappedHiveAllCustom( addr, msg[2], msg.copyToEnd( 3 ) );
-				}{ verbose.value( 0, "missing port in message" ); };			}),
+				}{ verbose.value( 0, "missing port in message" ); };
+            }, '/unmapped/minihive/output' );
 
-
-			/// obsolete :
-			OSCresponderNode( nil, '/map/minibee/pwm', { |t,r,msg,addr|
-				verbose.value( 1, msg );
-				if ( msg.size > 1 ){
-					addr.port = msg[1]; this.mapHivePWM( addr, msg[2], msg.copyToEnd( 3 ) );
-				}{ verbose.value( 0, "missing port in message" ); };			}),
-			OSCresponderNode( nil, '/map/minibee/digital', { |t,r,msg,addr|
-				verbose.value( 1, msg );
-				if ( msg.size > 1 ){
-					addr.port = msg[1]; this.mapHiveDig( addr, msg[2], msg.copyToEnd( 3 ) );
-				}{ verbose.value( 0, "missing port in message" ); };			}),
-			/// end - obsolete
+            OSCFunc.new( { |msg, t, addr, recvPort|
+                verbose.value( 1, msg );
+                if ( msg.size > 1 ){
+                    addr.port = msg[1]; this.unmappedHiveAllCustom( addr, msg[2], msg.copyToEnd( 3 ) );
+				}{ verbose.value( 0, "missing port in message" ); };
+            }, '/unmapped/minihive/custom' ),
 
 			// CLIENT HIVE MANAGEMENT
 
-			OSCresponderNode( nil, '/register/hive', { |t,r,msg,addr|
+            OSCFunc.new( { |msg, t, addr, recvPort|
 				verbose.value( 1, msg );
 				if ( msg.size > 1 ){
 					addr.port = msg[1]; this.addHiveClient( addr, msg[2], msg[3] );
 				}{ verbose.value( 0, "missing port in message" ); };
-			}),
-			OSCresponderNode( nil, '/unregister/hive', { |t,r,msg,addr|
+            }, '/register/hive' ),
+
+            OSCFunc.new( { |msg, t, addr, recvPort|
 				verbose.value( 1, msg );
 				if ( msg.size > 1 ){
 					addr.port = msg[1]; this.removeHiveClient( addr, msg[2] );
 				}{ verbose.value( 0, "missing port in message" ); };
-			}),
-			OSCresponderNode( nil, '/query/hives', { |t,r,msg,addr|
+            }, '/unregister/hive' );
+
+            OSCFunc.new( { |msg, t, addr, recvPort|
 				verbose.value( 1, msg );
 				if ( msg.size > 1 ){
 					addr.port = msg[1]; this.hiveQuery( addr, msg[2] );
 				}{ verbose.value( 0, "missing port in message" ); };
-			}),
-			OSCresponderNode( nil, '/query/configurations', { |t,r,msg,addr|
+            }, '/query/hives' );
+
+            OSCFunc.new( { |msg, t, addr, recvPort|
 				verbose.value( 1, msg );
 				if ( msg.size > 1 ){
 					addr.port = msg[1]; this.configQuery( addr, msg[2] );
 				}{ verbose.value( 0, "missing port in message" ); };
-			}),
-			OSCresponderNode( nil, '/info/configuration', { |t,r,msg,addr|
+            }, '/query/configurations' ),
+
+            OSCFunc.new( { |msg, t, addr, recvPort|
 				verbose.value( 1, msg );
 				if ( msg.size > 1 ){
 					addr.port = msg[1]; this.configInfo( addr, msg[2], msg.copyToEnd(3) );
 				}{ verbose.value( 0, "missing port in message" ); };
-			}),
-			OSCresponderNode( nil, '/configure/minibee', { |t,r,msg,addr|
+            }, '/info/configuration' ),
+
+            OSCFunc.new( { |msg, t, addr, recvPort|
 				verbose.value( 1, msg );
 				if ( msg.size > 1 ){
 					addr.port = msg[1]; this.configMiniBee( addr, msg[2], msg.copyToEnd(3) );
 				}{ verbose.value( 0, "missing port in message" ); };
-			}),
-			OSCresponderNode( nil, '/configured/minibee', { |t,r,msg,addr|
+            }, '/configure/minibee' ),
+
+            OSCFunc.new( { |msg, t, addr, recvPort|
 				verbose.value( 1, msg );
 				if ( msg.size > 1 ){
 					addr.port = msg[1]; this.configuredMiniBee( addr, msg[2], msg.copyToEnd(3) );
 				}{ verbose.value( 0, "missing port in message" ); };
-			}),
-			OSCresponderNode( nil, '/minihive/configuration/create', { |t,r,msg,addr|
+            }, '/configured/minibee' ),
+
+            OSCFunc.new( { |msg, t, addr, recvPort|
 				verbose.value( 1, msg );
 				if ( msg.size > 1 ){
 					addr.port = msg[1]; this.createConfig( addr, msg[2], msg.copyToEnd(3) );
 				}{ verbose.value( 0, "missing port in message" ); };
-			}),
-			OSCresponderNode( nil, '/minihive/configuration/created', { |t,r,msg,addr|
+            }, '/minihive/configuration/create' ),
+
+            OSCFunc.new( { |msg, t, addr, recvPort|
 				// from minihive
 				verbose.value( 1, msg );
 				if ( msg.size > 1 ){
 					addr.port = msg[1]; this.createdConfig( addr, msg[2], msg.copyToEnd(3) );
 				}{ verbose.value( 0, "missing port in message" ); };
-			}),
-			OSCresponderNode( nil, '/minihive/configuration/delete', { |t,r,msg,addr|
+            }, '/minihive/configuration/created' ),
+
+            OSCFunc.new( { |msg, t, addr, recvPort|
 				verbose.value( 1, msg );
 				if ( msg.size > 1 ){
 					addr.port = msg[1]; this.deleteConfig( addr, msg[2], msg.copyToEnd(3) );
 				}{ verbose.value( 0, "missing port in message" ); };
-			}),
-			OSCresponderNode( nil, '/minihive/configuration/deleted', { |t,r,msg,addr|
+            }, '/minihive/configuration/delete' ),
+
+            OSCFunc.new( { |msg, t, addr, recvPort|
 				// from minihive
 				verbose.value( 1, msg );
 				if ( msg.size > 1 ){
 					addr.port = msg[1]; this.deletedConfig( addr, msg[2], msg.copyToEnd(3) );
 				}{ verbose.value( 0, "missing port in message" ); };
-			}),
-			OSCresponderNode( nil, '/minihive/configuration/save', { |t,r,msg,addr|
+            }, '/minihive/configuration/deleted' ),
+
+            OSCFunc.new( { |msg, t, addr, recvPort|
 				verbose.value( 1, msg );
 				if ( msg.size > 1 ){
 					addr.port = msg[1]; this.saveConfig( addr, msg[2], msg.copyToEnd(3) );
 				}{ verbose.value( 0, "missing port in message" ); };
-			}),
-			OSCresponderNode( nil, '/minihive/configuration/saved', { |t,r,msg,addr|
+            }, '/minihive/configuration/save' ),
+
+            OSCFunc.new( { |msg, t, addr, recvPort|
 				// from minihive
 				verbose.value( 1, msg );
 				if ( msg.size > 1 ){
 					addr.port = msg[1]; this.savedConfig( addr, msg[2], msg.copyToEnd(3) );
 				}{ verbose.value( 0, "missing port in message" ); };
-			}),
-			OSCresponderNode( nil, '/minihive/configuration/load', { |t,r,msg,addr|
+            }, '/minihive/configuration/saved' ),
+
+            OSCFunc.new( { |msg, t, addr, recvPort|
 				verbose.value( 1, msg );
 				if ( msg.size > 1 ){
 					addr.port = msg[1]; this.loadConfig( addr, msg[2], msg.copyToEnd(3) );
 				}{ verbose.value( 0, "missing port in message" ); };
-			}),
-			OSCresponderNode( nil, '/minihive/configuration/loaded', { |t,r,msg,addr|
-				// from minihive
-				verbose.value( 1, msg );
+            }, '/minihive/configuration/load' ),
+
+            OSCFunc.new( { |msg, t, addr, recvPort|
+                verbose.value( 1, msg );
 				if ( msg.size > 1 ){
 					addr.port = msg[1]; this.loadedConfig( addr, msg[2], msg.copyToEnd(3) );
 				}{ verbose.value( 0, "missing port in message" ); };
-			}),
-			OSCresponderNode( nil, '/minihive/error', { |t,r,msg,addr|
+			}, '/minihive/configuration/loaded'),
+
+            OSCFunc.new( { |msg, t, addr, recvPort|
 				// from minihive
 				verbose.value( 1, msg );
 				if ( msg.size > 1 ){
 					addr.port = msg[1]; this.errorFromHive( addr, msg[2], msg.copyToEnd(3) );
 				}{ verbose.value( 0, "missing port in message" ); };
-			})
+			}, '/minihive/error' )
 		];
-		responders.do{ |it| it.add };
+            // responders.do{ |it| it.add };
+        responders.do{ |it| it.permanent_( true ) };
 	}
 
 	activeClientsDo{ |method,args|
@@ -515,7 +543,7 @@ SWDataNetworkOSC{
 		}
 	}
 
-	
+
 
 	// ---------- autoconnection and recovery support -------
 
@@ -552,7 +580,7 @@ SWDataNetworkOSC{
 
 		ports.do{ |it|
 			// LAN:
-			NetAddr.new( broadcastip, it ).sendMsg( 
+			NetAddr.new( broadcastip, it ).sendMsg(
 				"/datanetwork/announce", myhost.hostname, myhost.port.asInteger );
 		};
 
@@ -560,15 +588,15 @@ SWDataNetworkOSC{
 		if ( cips.notNil ){
 			cips.do{ |jt|
 				ports.do{ |it|
-					NetAddr.new( jt, it ).sendMsg( 
+					NetAddr.new( jt, it ).sendMsg(
 						"/datanetwork/announce", myhost.hostname, myhost.port.asInteger );
 				};
 			};
 		};
-		
+
 		// localhost
 		ports.do{ |it|
-			NetAddr.new( "127.0.0.1", it ).sendMsg( 
+			NetAddr.new( "127.0.0.1", it ).sendMsg(
 				"/datanetwork/announce", "127.0.0.1", myhost.port.asInteger );
 			};
 
@@ -604,7 +632,7 @@ SWDataNetworkOSC{
 	backupClients{ |name|
 		name = name ? "SWDataNetworOSC_clients";
 		this.backupClientsIPs( name );
-		clientDictionary.collect{ |it| 
+		clientDictionary.collect{ |it|
 			[ it.addr, it.subscriptions.asArray,
 				it.setters.collect{ |it| [it.id,it.data.size] }.asArray
 			] }.asArray.writeArchive( Platform.userAppSupportDir +/+ name  );
@@ -640,8 +668,8 @@ SWDataNetworkOSC{
 		};
 	}
 
-	// -------- 
-	
+	// --------
+
 
 	//------- Methods called by the network
 
@@ -690,7 +718,7 @@ SWDataNetworkOSC{
 		if ( client.isNil, {
 			this.errorMsg( addr, "/subscribe/all", 15, [name] );
 		},{
-			network.nodes.do{ |it| 
+			network.nodes.do{ |it|
 				client.subscribeNode( it.id );
 				this.getNode( addr, client.key, [it.id] );
 				this.logMsg( "client:"+(client.addr.asString.replace( "a NetAddr",""))+"subscribed to node:"+it.id );
@@ -822,7 +850,7 @@ SWDataNetworkOSC{
 	addClient{ |addr,name|
 		var there,newclient,there2;
 		there = this.findClient( addr );
-		if ( there.isNil, { 
+		if ( there.isNil, {
 			// no client had that IP and port before
 			// see if the client exists by name in the library
 			there = clientDictionary.at( name.asSymbol );
@@ -830,7 +858,7 @@ SWDataNetworkOSC{
 				// address may have changed, so we reset it:
 				there.addr = addr;
 				this.welcomeClientBack( there );
-				if ( gui.notNil ){ 
+				if ( gui.notNil ){
 					gui.addClient( there );
 				};
 				this.logMsg( "client reregistered:"+(addr.asString.replace( "a NetAddr",""))+name );
@@ -844,7 +872,7 @@ SWDataNetworkOSC{
 					//	clients = clients.add( newclient );
 					//	watcher.start;
 					clientDictionary.put( name.asSymbol, newclient );
-					if ( gui.notNil ){ 
+					if ( gui.notNil ){
 						gui.addClient( newclient );
 					};
 					this.logMsg( "client registered:"+(addr.asString.replace( "a NetAddr",""))+name );
@@ -861,8 +889,8 @@ SWDataNetworkOSC{
 			};
 			//	[ there.key, name.asSymbol ].postln;
 			//	there.addr = addr;
-			this.welcomeClientBack( there );				
-			this.logMsg( "client reregistered:"+(addr.asString.replace( "a NetAddr",""))+name );				
+			this.welcomeClientBack( there );
+			this.logMsg( "client reregistered:"+(addr.asString.replace( "a NetAddr",""))+name );
 		});
 	}
 
@@ -873,7 +901,7 @@ SWDataNetworkOSC{
 		//		[addr,there].postln;
 		//		thisProcess.dumpBackTrace;
 
-		if ( there.notNil, { 
+		if ( there.notNil, {
 			if ( there.key == name.asSymbol ){
 				/// removed, as we keep the client in the dictionary
 				there.active = false;
@@ -911,7 +939,7 @@ SWDataNetworkOSC{
 	addHiveClient{ |addr,name,nonodes|
 		var there,newclient,hiveBlock;
 		there = this.findClient( addr );
-		if ( there.isNil, { 
+		if ( there.isNil, {
 			// no client had that IP and port before
 			// see if the client exists by name in the library
 			there = hiveDictionary.at( name.asSymbol );
@@ -923,7 +951,7 @@ SWDataNetworkOSC{
 				//	hiveBlock = this.allocHiveNodes( nonodes );
 				//	there.setRange( hiveBlock, hiveBlock + nonodes );
 				this.welcomeClientBack( there );
-				if ( gui.notNil ){ 
+				if ( gui.notNil ){
 					gui.addClient( there );
 				};
 				this.logMsg( "hive client reregistered:"+(addr.asString.replace( "a NetAddr",""))+name );
@@ -939,10 +967,10 @@ SWDataNetworkOSC{
 					//	clients = clients.add( there );
 					hiveDictionary.put( name.asSymbol, there );
 					this.welcomeClientBack( there );
-					if ( gui.notNil ){ 
+					if ( gui.notNil ){
 						gui.addClient( there );
 					};
-					this.logMsg( "client became hive client and reregistered:"+(addr.asString.replace( "a NetAddr",""))+name );	
+					this.logMsg( "client became hive client and reregistered:"+(addr.asString.replace( "a NetAddr",""))+name );
 				}{
 					// completely new client:
 					if ( addr.port > 0){
@@ -955,7 +983,7 @@ SWDataNetworkOSC{
 						//	watcher.start;
 						clientDictionary.put( name.asSymbol, newclient );
 						hiveDictionary.put( name.asSymbol, newclient );
-						if ( gui.notNil ){ 
+						if ( gui.notNil ){
 							gui.addClient( newclient );
 						};
 						this.logMsg( "hive client registered:"+(addr.asString.replace( "a NetAddr",""))+name );
@@ -972,10 +1000,10 @@ SWDataNetworkOSC{
 				//	hiveBlock = this.allocHiveNodes( nonodes );
 				//	there.setRange( hiveBlock, hiveBlock + nonodes );
 				this.welcomeClientBack( there );
-				if ( gui.notNil ){ 
+				if ( gui.notNil ){
 					gui.addClient( there );
-				};				
-				this.logMsg( "hiveclient reregistered:"+(addr.asString.replace( "a NetAddr",""))+name );				
+				};
+				this.logMsg( "hiveclient reregistered:"+(addr.asString.replace( "a NetAddr",""))+name );
 			}{
 				there = clientDictionary.at( name.asSymbol );
 			//	there.postln;
@@ -984,10 +1012,10 @@ SWDataNetworkOSC{
 					hiveBlock = this.allocHiveNodes( nonodes );
 					there = SWDataNetworkOSCHiveClient.newFrom( there, hiveBlock, hiveBlock + nonodes );
 					this.welcomeClientBack( there );
-					if ( gui.notNil ){ 
+					if ( gui.notNil ){
 						gui.addClient( there );
-					};	
-					this.logMsg( "client reregistered as hive client:"+(addr.asString.replace( "a NetAddr",""))+name );				
+					};
+					this.logMsg( "client reregistered as hive client:"+(addr.asString.replace( "a NetAddr",""))+name );
 				}{
 					this.errorMsg( addr, "/register/hive", 2);
 				};
@@ -1001,7 +1029,7 @@ SWDataNetworkOSC{
 		there = this.findClient( addr );
 		//		[addr,there].postln;
 
-		if ( there.notNil, { 
+		if ( there.notNil, {
 			if ( there.key == name.asSymbol ){
 				/// removed, as we keep the client in the dictionary
 				//	there.setters.do{ |node| setters.removeAt( node.id ) };
@@ -1058,7 +1086,7 @@ SWDataNetworkOSC{
 					this.logMsg( "client:"+(client.addr.asString.replace( "a NetAddr",""))+"minibee status:"+msg[0]+msg[1] );
 				}{
 					this.errorMsg( addr, "/status/minibee", 19, [name, msg[0]] ++ client.nodeRange );
-				};				
+				};
 			}{
 				this.errorMsg( addr, "/status/minibee", 16, [name,msg[0]] );
 			}
@@ -1389,7 +1417,7 @@ SWDataNetworkOSC{
 			}{
 				this.errorMsg( addr, "/minihive/error", 16, [name,msg[0]] );
 			}
-		});		
+		});
 	}
 
 
@@ -1688,19 +1716,19 @@ SWDataNetworkOSC{
 	runMiniBee{ |beeid,status|
 		hiveDictionary.do{ |it|
 			it.runMiniBee( beeid, status );
-		};		
+		};
 	}
 
 	saveIDMiniBee{ |beeid|
 		hiveDictionary.do{ |it|
 			it.saveIDMiniBee( beeid );
-		};		
+		};
 	}
 
 	announceMiniBee{ |beeid|
 		hiveDictionary.do{ |it|
 			it.announceMiniBee( beeid );
-		};		
+		};
 	}
 
 	loopMiniBee{ |beeid,status|
@@ -1712,7 +1740,7 @@ SWDataNetworkOSC{
 	resetMiniBee{ |beeid|
 		hiveDictionary.do{ |it|
 			it.resetMiniBee( beeid );
-		};		
+		};
 	}
 
 	mapHiveOutputLocal{ |nodeid, beeid|
@@ -2141,7 +2169,7 @@ SWDataNetworkOSC{
 		this.logMsg("/add/expected:" + msg + " from client with IP"+addr.ip+"and port"+addr.port );
 	}
 
-	// ---------------	
+	// ---------------
 
 	getErrorString{ |addr,id,msg|
 		var string;
@@ -2165,7 +2193,7 @@ SWDataNetworkOSC{
 			17, { string = "Client with IP"+addr.ip+"and port"+addr.port+"and name" + msg[0] + "tried to add a minibee with id" + msg[1] + ", which is out of range of the hive"},
 			18, { string = "Client with IP"+addr.ip+"and port"+addr.port+"and name" + msg[0] + "sent a minibee configuration with id" + msg[1] + ", but is not a hive client"},
 			19, { string = "Client with IP"+addr.ip+"and port"+addr.port+"and name" + msg[0] + "sent a minibee status update with id" + msg[1] + ", but the minibee is not part of the hive"}
-		);	
+		);
 		^string;
 	}
 
