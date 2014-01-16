@@ -31,7 +31,7 @@ SWDataNetwork{
 	var <>hooks;
 	//	var <>newNodeHooks;
 
-	*new{ 
+	*new{
 		^super.new.init;
 	}
 
@@ -46,7 +46,7 @@ SWDataNetwork{
 		watcher = SkipJack.new(
 			{
 				var now = Process.elapsedTime;
-				nodes.do{ |it,i| 
+				nodes.do{ |it,i|
 					if ( it.elapsed > worrytime,
 						{
 							verbose.value( 2, "restarting network" );
@@ -101,7 +101,7 @@ SWDataNetwork{
 		var node,type;
 		verbose.value( 3, [id,data] );
 		//if ( verbose > 1, { [id,data].postln; } );
-		
+
 		if ( id.isKindOf( Integer ) ){
 			node = nodes[id];
 			if ( node.isNil, {
@@ -118,7 +118,7 @@ SWDataNetwork{
 				returnCode = 3;
 			}
 		};
-		
+
 		if ( ret ) {
 			if ( recTime ){
 				lasttime = node.lasttime;
@@ -152,7 +152,7 @@ SWDataNetwork{
 			ret = false;
 			if ( verbose > 0 ) { ("node"+id+"does not exist").postln; };
 		});
-		if ( ret ) { 
+		if ( ret ) {
 			nodes[id].dataSlot_( id2, value );
 			if ( osc.notNil, {
 				osc.sendData( id, nodes[id].data );
@@ -394,10 +394,10 @@ SWDataNetwork{
 		};
 		if ( ret ) {
 			if ( type == 0 ){
-				nnode = SWDataNode.new( id,sz );
+                nnode = SWDataNode.new( id,sz ).network_( this );
 			};
 			if ( type == 1 ){
-				nnode = SWDataStringNode.new( id,sz );
+				nnode = SWDataStringNode.new( id,sz ).network_( this );
 			};
 			if ( nnode.notNil ){
 				nodes.put( id, nnode );
@@ -413,7 +413,7 @@ SWDataNetwork{
 				});
 				key = spec.findNode( id );
 				if ( key.notNil, {this.at( key ).key = key; });
-				sz.do{ |it| 
+				sz.do{ |it|
 					key = spec.findSlot( id, it );
 					if ( key.notNil, {this.at( key ).key = key; });
 				};
@@ -621,7 +621,7 @@ SWDataNetwork{
 		recslots = recnodes.collect{ |nodeid|
 			nodes[nodeid].slots.collect{ |it| it.id };
 		}.flatten;
-		
+
 		//	logfile.write( "\n" );
 
 		logfile.writeLine( [ "time" ] ++ recslots );
@@ -637,13 +637,13 @@ SWDataNetwork{
 			nodes[it].slots.collect{ |slot| slot.value }.do{ |dat|
 			logfile.write( dat.asCompileString );
 			logfile.write( "\t" );
-			}; 
+			};
 			};
 			logfile.write( "\n" );
 		*/
 		data = recnodes.collect{ |it|
 			nodes[it].slots.collect{ |slot| slot.logvalue }
-		}.flatten; 
+		}.flatten;
 
 		logfile.writeLine( [dt] ++ data);
 	}
@@ -720,6 +720,8 @@ SWDataNetwork{
 // a DataNode are a collection of slots which are physically connected to each other, e.g. data gathered from the same device.
 SWDataNode{
 
+    var <>network;
+
 	var <id;
 	var <>key;
 	var <type = 0;
@@ -746,7 +748,23 @@ SWDataNode{
 	*new{ |id,maxs=4|
 		^super.new.init(id,maxs);
 	}
-	
+
+    // processes should be an array of tuples: [ name, id, type ]
+    process{ | processes, autostart=true |
+        var nodes, currenttype;
+        nodes = processes.collect{ |it|
+            currenttype = it[2];
+            if ( currenttype.isNil ){
+                currenttype = \busnode;
+            };
+            if ( currenttype == \busnode ){ // type
+                this.createBus( Server.default );
+                SWBusNode.fromTemplate( it[0], it[1], this.network, this.bus, this.bus.server, autostart );
+            };
+        };
+        ^nodes;
+    }
+
 	init{ |ident,maxs|
 		id = ident;
 		lasttime = 0;
@@ -761,7 +779,7 @@ SWDataNode{
 	}
 
 	initSlots{
-		slots.do{ |it,i| slots.put( i, SWDataSlot.new([id,i]) ); };
+        slots.do{ |it,i| slots.put( i, SWDataSlot.new([id,i]).node_( this ) ); };
 	}
 
 	// -------- slots and data -------
@@ -847,9 +865,9 @@ SWDataNode{
 
 	monitor{ |onoff=true|
 		if ( onoff, {
-			if ( datamonitor.isNil, { 
+			if ( datamonitor.isNil, {
 				if ( monitorMode == \plotter ){
-					datamonitor = SWPlotterMonitor.new( { this.value }, 200, this.size, 0.05, 20 );
+					datamonitor = SWPlotterMonitor.new( { this.value }, 200, this.size, 0.010, 20 );
 				}{
 					if ( bus.isNil, { this.createBus } );
 					datamonitor = BusMonitor.new( this.bus );
@@ -881,6 +899,8 @@ SWDataNode{
 }
 
 SWDataSlot{
+    var <>node;
+
 	var <>id;
 	var <>key;
 	var <type = 0;
@@ -905,6 +925,23 @@ SWDataSlot{
 	*new{ |id|
 		^super.new.init(id);
 	}
+
+        // processes should be an array of tuples: [ name, id, type ]
+    process{ | processes, autostart=true |
+        var nodes, currenttype;
+        nodes = processes.collect{ |it|
+            currenttype = it[2];
+            if ( currenttype.isNil ){
+                currenttype = \busnode;
+            };
+            if ( currenttype == \busnode ){ // type
+                this.createBus( Server.default );
+                SWBusNode.fromTemplate( it[0], it[1], this.node.network, this.bus, this.bus.server, autostart );
+            };
+        };
+        ^nodes;
+    }
+
 
 	init{ |ident|
 		id = ident;
@@ -956,7 +993,7 @@ SWDataSlot{
 		var calib,values;
 		values = Array.new( steps );
 		range = [0,1].asSpec;
-		calib = Routine{ 
+		calib = Routine{
 			var mean;
 			steps.do{ |it,i| values.add( this.value ); it.yield; };
 			mean = values.sum / values.size;
@@ -1045,7 +1082,7 @@ SWDataNetworkSpec{
 	var <>name;
 	var <map, network;
 
-	*initClass { 
+	*initClass {
 		// not yet used
 		this.makeSaveFolder;
 		this.loadSavedInfo;
@@ -1055,13 +1092,13 @@ SWDataNetworkSpec{
 	*loadSavedInfo{
 		all = (folder+/+"allspecs.info").load;
 	}
-	
-	*makeSaveFolder { 
-		var testfile, testname = "zzz_datanetwork_test_delete_me.txt"; 
+
+	*makeSaveFolder {
+		var testfile, testname = "zzz_datanetwork_test_delete_me.txt";
 		folder = (Platform.userAppSupportDir +/+ "DataNetworkSpecs").standardizePath;
 		testfile = File(folder +/+ testname, "w");
 
-		if (testfile.isOpen.not) 
+		if (testfile.isOpen.not)
 			{ unixCmd("mkdir" + folder.escapeChar($ )) }
 			{ testfile.close;  unixCmd("rm" + folder.escapeChar($ ) +/+ testname) }
 	}
@@ -1070,8 +1107,8 @@ SWDataNetworkSpec{
 		var file, res = false;
 		var filename;
 		filename = folder +/+ "allspecs.info";
-		file = File(filename, "w"); 
-		if (file.isOpen) { 
+		file = File(filename, "w");
+		if (file.isOpen) {
 			res = file.write(all.asCompileString);
 			file.close;
 		};
@@ -1091,7 +1128,7 @@ SWDataNetworkSpec{
 	saveAsTabs{ |path|
 		var file,mynodes,myslots;
 		file = TabFileWriter.new( path, "w" );
-		
+
 		mynodes = network.nodes.collect{ |node|
 			node.id;
 		}.asArray;
@@ -1111,8 +1148,8 @@ SWDataNetworkSpec{
 		all.add( name.asSymbol );
 		this.name = name ? this.name;
 		filename = folder +/+ name ++ ".spec";
-		file = File(filename, "w"); 
-		if (file.isOpen) { 
+		file = File(filename, "w");
+		if (file.isOpen) {
 			res = file.write(map.asCompileString);
 			file.close;
 		};
@@ -1120,7 +1157,7 @@ SWDataNetworkSpec{
 		^res;
 	}
 
-	fromFile { |name| 
+	fromFile { |name|
 		var slot;
 		this.name = name;
 		map = (folder +/+ name++".spec").load;
@@ -1134,7 +1171,7 @@ SWDataNetworkSpec{
 		("cp"+(folder +/+ name++".spec")+target).unixCmd;
 	}
 
-	fromFileName { |fn| 
+	fromFileName { |fn|
 		var slot;
 		this.name = name;
 		map = (fn++".spec").load;
@@ -1142,7 +1179,7 @@ SWDataNetworkSpec{
 			slot = this.at( key );
 			if ( slot.notNil, { slot.key = key; } );
 		}
-	} 
+	}
 
 	findNode{ |id|
 		^map.findKeyForValue( id );
@@ -1207,7 +1244,7 @@ SWDataNetworkSpec{
 		key = key.asSymbol;
 		slot = this.at(key);
 		slot.action_(action);
-		^slot;		
+		^slot;
 	}
 
 	//-------- node bus control ---------

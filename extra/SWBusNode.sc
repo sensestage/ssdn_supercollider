@@ -2,6 +2,7 @@
 
 SWBusNode{
 	classvar <all;
+    classvar <>templateFolder;
 
 	var <>synthDef;
 
@@ -26,7 +27,76 @@ SWBusNode{
 	}
 
 	*new{|id,network,input,serv,autostart=false|
-		^super.new.init( id, network, input,serv,autostart );
+		^super.new.init( id, network, input, serv, autostart );
+	}
+
+    *fromTemplate{ |name, id, network, input, serv, autostart=false|
+		^super.new.initFromTemplate( name, id, network, input, serv, autostart );
+    }
+
+    readTemplate{ |name, server,nochans|
+        var template, path;
+        // find file in folder
+        path = templateFolder +/+ name ++ ".templ.scd";
+        template = path.load;
+        // doublecheck name and type
+        if ( template.notNil ){
+            if ( name == template[\name] && ( template[\type] == \busnode ) ){
+                bus = template[\bus].value( server, nochans );
+                synthDef = template[\synthdef].value( inbus.rate, nochans );
+                if ( template[\settings].notNil ){
+                    template[\settings].keysValuesDo{ |k,v|
+                        settings.put( k, v );
+                    };
+                };
+                if ( template[\restartsettings].notNil ){
+                    template[\restartsettings].do{ |it|
+                        restartsettings.add( it );
+                    };
+                };
+            }{
+                "template for % is not matching".postf( name );
+            }
+        }{
+            "template for % not found".postf( name );
+        }
+    }
+
+    initFromTemplate{ |name, ky,ntwork,in,serv,autostart=false|
+		id = ky;
+		network = ntwork;
+		server = serv ? Server.default;
+		inbus = in;
+
+		settings = IdentityDictionary.new;
+		restartsettings = Set.new;
+
+		network.addExpected( id );
+
+		watcher = SkipJack.new( {
+			this.getn( { |v| network.setData( id, v ) } ) }, dt, false
+			//{ if ( synth.notNil, { synth.isRunning.not },
+			//	{ false } ) }
+			, "SWBusNode_"++id, autostart: false );
+
+
+		all.put( id, this );
+
+		this.readTemplate( name, server, inbus.numChannels );
+
+		settings.put( \out, bus );
+		settings.put( \in, inbus );
+		settings.put( \lag, 0.05 );
+		settings.put( \mul, 1 );
+
+		this.myInit;
+
+		if ( autostart ){
+			fork{
+				server.sync;
+				this.start;
+			}
+		};
 	}
 
 	*at{ |id|
@@ -192,7 +262,6 @@ AmpTrackNode : SWBusNode{
 			}).send(s);
 		}
 	}
-
 }
 
 PitchTrackNode : SWBusNode{
