@@ -106,7 +106,7 @@ SWDataNetworkOSCClient{
 		this.pong;
         this.setterQuery(0.025);
         this.subscriptionQuery(0.05);
-        bundle = setters.collect{ |it|
+        bundle = setters.collect{ |node|
             [ '/info/node', node.id, node.key.asString, node.slots.size, node.type ];
             // this.newNode( it );
 		};
@@ -130,7 +130,7 @@ SWDataNetworkOSCClient{
 
         bundle = nodeSubs.collect{ |it|
             [
-                [ '/info/expected', id, "" ],
+                [ '/info/expected', it, "" ],
                 [ '/subscribed/node', addr.port, key.asString, it ]
             ]
             // this.newExpected( it );

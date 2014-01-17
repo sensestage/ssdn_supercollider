@@ -835,10 +835,12 @@ SWDataNetworkOSC{
 
 	welcomeClientBack{ |client|
         var bundle = [];
+        var node;
 		//	("welcoming client back" + client.addr + client.key ).postln;
 		client.welcomeBack;
         client.nodeSubs.do{ |it|
             if ( network.nodes[it].notNil){
+                node = network.nodes[it];
                 bundle = bundle.add( [ '/info/node', node.id, node.key.asString, node.slots.size, node.type ]
                 );
                 // client.newNode( network.nodes[it] );
