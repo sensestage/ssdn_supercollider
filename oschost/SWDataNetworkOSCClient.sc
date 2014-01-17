@@ -91,7 +91,7 @@ SWDataNetworkOSCClient{
 			^false;
 		});
         // make bundle
-        bundle = setters.collect{ |it|
+        bundle = setters.asArray.collect{ |it|
             ['/info/setter', it.id, it.key.asString, it.slots.size, it.type ]
             // addr.sendMsg( '/info/setter', it.id, it.key.asString, it.slots.size, it.type );
         };
@@ -106,7 +106,7 @@ SWDataNetworkOSCClient{
 		this.pong;
         this.setterQuery(0.025);
         this.subscriptionQuery(0.05);
-        bundle = setters.collect{ |node|
+        bundle = setters.asArray.collect{ |node|
             [ '/info/node', node.id, node.key.asString, node.slots.size, node.type ];
             // this.newNode( it );
 		};
@@ -128,7 +128,7 @@ SWDataNetworkOSCClient{
 			^false;
 		});
 
-        bundle = nodeSubs.collect{ |it|
+        bundle = nodeSubs.asArray.collect{ |it|
             [
                 [ '/info/expected', it, "" ],
                 [ '/subscribed/node', addr.port, key.asString, it ]
@@ -136,8 +136,8 @@ SWDataNetworkOSCClient{
             // this.newExpected( it );
             // addr.sendMsg( '/subscribed/node', addr.port, key.asString, it );
 		}.flatten;
-        bundle2 = slotNodesSubs.collect{ |it|
-			slotSubs[it].collect{ |jt|
+        bundle2 = slotNodesSubs.asArray.collect{ |it|
+			slotSubs[it].asArray.collect{ |jt|
                 [ '/subscribed/slot', addr.port, key.asString, it, jt ];
                 // addr.sendMsg( '/subscribed/slot', addr.port, key.asString, it, jt );
 			}
