@@ -834,13 +834,19 @@ SWDataNetworkOSC{
 	}
 
 	welcomeClientBack{ |client|
+        var bundle = [];
 		//	("welcoming client back" + client.addr + client.key ).postln;
 		client.welcomeBack;
-		client.nodeSubs.do{ |it|
-			if ( network.nodes[it].notNil){
-				client.newNode( network.nodes[it] );
+        client.nodeSubs.do{ |it|
+            if ( network.nodes[it].notNil){
+                bundle = bundle.add( [ '/info/node', node.id, node.key.asString, node.slots.size, node.type ]
+                );
+                // client.newNode( network.nodes[it] );
 			}
-		};
+        };
+        if ( bundle.size > 0 ){
+            client.sendBundle( bundle, 0.1 )
+        };
 		client.setters.do{ |it|
 			//		("setter"+it.id + client.addr).postln;
 			setters.put( it.id, client.key );

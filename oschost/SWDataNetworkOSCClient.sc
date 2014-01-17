@@ -32,6 +32,14 @@ SWDataNetworkOSCClient{
 		//		this.sendRegistered;
 	}
 
+    sendBundle{ |bundle,time=0|
+        if ( bundle.bundleSize > 65536 ){
+            addr.sendClumpedBundles( time, bundle );
+        }{
+            addr.sendBundle( time, bundle );
+        };
+    }
+
 	sendRegistered{
 		addr.sendMsg( '/registered', addr.port.asInteger, key.asString );
 	}
@@ -77,25 +85,32 @@ SWDataNetworkOSCClient{
 		addr.sendMsg( '/info/setter', node.id, node.key.asString, node.slots.size, node.type );
 	}
 
-	setterQuery{
+	setterQuery{ |delay=0|
+        var bundle;
 		if ( setters.size == 0, {
 			^false;
 		});
-		setters.do{ |it|
-			addr.sendMsg( '/info/setter', it.id, it.key.asString, it.slots.size, it.type );
-		};
+        // make bundle
+        bundle = setters.collect{ |it|
+            ['/info/setter', it.id, it.key.asString, it.slots.size, it.type ]
+            // addr.sendMsg( '/info/setter', it.id, it.key.asString, it.slots.size, it.type );
+        };
+        this.sendBundle( bundle, delay );
 		^true;
 	}
 
 	welcomeBack{
+        var bundle;
 		//	this.dump;
 		this.sendRegistered;
 		this.pong;
-		this.setterQuery;		
-		this.subscriptionQuery;
-		setters.do{ |it|
-			this.newNode( it );
+        this.setterQuery(0.025);
+        this.subscriptionQuery(0.05);
+        bundle = setters.collect{ |it|
+            [ '/info/node', node.id, node.key.asString, node.slots.size, node.type ];
+            // this.newNode( it );
 		};
+        this.sendBundle( bundle, 0.075 );
 	}
 
 	hostQuit{ |myhost|
@@ -107,20 +122,27 @@ SWDataNetworkOSCClient{
 		^setters.at(node.id).notNil;
 	}
 
-	subscriptionQuery{
+	subscriptionQuery{ |delay=0|
+        var bundle,bundle2;
 		if ( subscriptions.size == 0, {
 			^false;
 		});
 
-		nodeSubs.do{ |it|
-			this.newExpected( it );
-			addr.sendMsg( '/subscribed/node', addr.port, key.asString, it );
-		};
-		slotNodesSubs.do{ |it|
-			slotSubs[it].do{ |jt|
-				addr.sendMsg( '/subscribed/slot', addr.port, key.asString, it, jt );
+        bundle = nodeSubs.collect{ |it|
+            [
+                [ '/info/expected', id, "" ],
+                [ '/subscribed/node', addr.port, key.asString, it ]
+            ]
+            // this.newExpected( it );
+            // addr.sendMsg( '/subscribed/node', addr.port, key.asString, it );
+		}.flatten;
+        bundle2 = slotNodesSubs.collect{ |it|
+			slotSubs[it].collect{ |jt|
+                [ '/subscribed/slot', addr.port, key.asString, it, jt ];
+                // addr.sendMsg( '/subscribed/slot', addr.port, key.asString, it, jt );
 			}
-		};
+		}.flatten;
+        this.sendBundle( bundle ++ bundle2, delay );
 		/*
 		subscriptions.do{ |it|
 			//			it.postln;
@@ -220,7 +242,7 @@ SWDataNetworkOSCClient{
 
 	sendData{ |id,data|
 		var msg;
-		//		if ( verbose, { 
+		//		if ( verbose, {
 		//		["sendData", id,data].postln;// } );
 		if ( subscriptions.includes( id ),
 			{
@@ -240,7 +262,7 @@ SWDataNetworkOSCClient{
 
 	sendDataNode{ |node|
 		var msg;
-		//		if ( verbose, { 
+		//		if ( verbose, {
 		//		["sendData", id,data].postln;// } );
 		// check node subscriptions:
 		if ( nodeSubs.includes(node.id),
