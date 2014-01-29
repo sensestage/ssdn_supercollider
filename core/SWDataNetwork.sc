@@ -441,15 +441,15 @@ SWDataNetwork{
 	addExpected{ |id,label=nil,size=nil,type=0|
 		if ( this.isExpected( id ).not, {
 			expectedNodes = expectedNodes.add( id );
+            if ( osc.notNil, { // Only send info message when node is truly new, otherwise client already have had the info
+                osc.newExpected( id, label );
+            });
 		});
 		if ( label.notNil and: (label.asSymbol != \0 ), {
 			this.add( label, id );
 		},{
 			// maybe the label is already in the spec
 			label = spec.findNode( id );
-		});
-		if ( osc.notNil, {
-			osc.newExpected( id, label );
 		});
 		if ( size.notNil, {
 			if ( type == 0 ){
