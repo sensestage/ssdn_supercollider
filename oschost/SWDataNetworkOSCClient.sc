@@ -74,7 +74,7 @@ SWDataNetworkOSCClient{
 		setters.add( node );
 		*/
 		setters.put( node.id, node );
-		addr.sendMsg( '/info/setter', node.id, node.key.asString, node.slots.size, node.type );
+		addr.sendMsg( '/info/setter', node.id, node.key.asString, node.slots.size, node.type ); // FIXME: format seems inconsistent with info/subscription
 	}
 
 	setterQuery{
@@ -82,7 +82,7 @@ SWDataNetworkOSCClient{
 			^false;
 		});
 		setters.do{ |it|
-			addr.sendMsg( '/info/setter', it.id, it.key.asString, it.slots.size, it.type );
+			addr.sendMsg( '/info/setter', it.id, it.key.asString, it.slots.size, it.type ); // FIXME: format seems inconsistent with info/subscription
 		};
 		^true;
 	}
@@ -91,7 +91,7 @@ SWDataNetworkOSCClient{
 		//	this.dump;
 		this.sendRegistered;
 		this.pong;
-		this.setterQuery;		
+		this.setterQuery;
 		this.subscriptionQuery;
 		setters.do{ |it|
 			this.newNode( it );
@@ -220,7 +220,7 @@ SWDataNetworkOSCClient{
 
 	sendData{ |id,data|
 		var msg;
-		//		if ( verbose, { 
+		//		if ( verbose, {
 		//		["sendData", id,data].postln;// } );
 		if ( subscriptions.includes( id ),
 			{
@@ -240,7 +240,7 @@ SWDataNetworkOSCClient{
 
 	sendDataNode{ |node|
 		var msg;
-		//		if ( verbose, { 
+		//		if ( verbose, {
 		//		["sendData", id,data].postln;// } );
 		// check node subscriptions:
 		if ( nodeSubs.includes(node.id),
