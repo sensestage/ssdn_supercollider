@@ -32,7 +32,7 @@ SWDataSlotGui{
 	}
 
 	init {
-		var xsize, ysize;
+		var ysize;
 
 		//	ysize = 80;
 
@@ -538,6 +538,7 @@ SWDataNetworkGui{
 		// nodeview:
 		ysize = 22 * network.nodes.size + 4;
 		xsize =  this.class.nodetype.xsize;
+        xsize.postln;
 		nv2 = GUI.compositeView.new( nodeview, Rect( 0,0, xsize, ysize ) );
 
 
