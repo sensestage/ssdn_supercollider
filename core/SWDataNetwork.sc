@@ -791,7 +791,7 @@ SWDataNode{
 	data_{ |indata|
 		if ( indata.size == slots.size , {
 			data = indata.asFloat * scale;
-			data.do{ |it,i| slots[i].value = it };
+			data.do{ |it,i| slots[i].value = it; };
 			action.value( data, this );
 			this.setLastTime;
 			//	trigger.value;

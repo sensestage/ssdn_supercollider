@@ -24,6 +24,7 @@ SWBusNode{
 
 	*initClass{
 		all = IdentityDictionary.new;
+		templateFolder = ("".resolveRelative +/+ "SWBusNodes");
 	}
 
 	*new{|id,network,input,serv,autostart=false|
@@ -33,6 +34,19 @@ SWBusNode{
     *fromTemplate{ |name, id, network, input, serv, autostart=false|
 		^super.new.initFromTemplate( name, id, network, input, serv, autostart );
     }
+
+	storeSynthDefFromTemplate{ |name, server, nochans|
+		var template, path;
+        // find file in folder
+        path = templateFolder +/+ name ++ ".templ.scd";
+        template = path.load;
+        // doublecheck name and type
+        if ( template.notNil ){
+			template[\storeSynthdef].value( inbus.rate, nochans );
+        }{
+            "template for % not found".postf( name );
+        }
+	}
 
     readTemplate{ |name, server,nochans|
         var template, path;
